@@ -40,7 +40,7 @@ mod tests {
         // assert_eq!(expected_root_hash, root);
         // // let key = Felt::from_u64(1);
         // // let value = Felt::from_u64(2);
-        let proof = tree.get_proof(6, key1.clone()).unwrap().unwrap();
+        let proof = tree.get_proof(root_idx, key1.clone()).unwrap().unwrap();
         println!("{:?}", proof);
         let mem = tree.verify_proof(root, &key1, value_1, &proof);
         println!("{:?}", mem);

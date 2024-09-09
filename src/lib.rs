@@ -383,7 +383,7 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
         let storage_root_index = self.storage.get_next_index() + number_of_nodes_added - 1;
         let final_index = self.storage.add_next_index(number_of_nodes_added);
 
-        Ok((update.root_commitment, final_index))
+        Ok((update.root_commitment, storage_root_index))
     }
 
     fn commit_subtree(
