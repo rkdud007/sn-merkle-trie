@@ -1,5 +1,6 @@
 pub mod conversion;
 pub mod node;
+pub mod storage;
 pub mod transaction;
 
 use anyhow::Context;
@@ -11,6 +12,7 @@ use starknet_types_core::{
     hash::{Pedersen, StarkHash},
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use storage::Storage;
 
 /// The result of committing a Merkle tree.
 #[derive(Default, Debug)]
@@ -25,40 +27,6 @@ pub struct TrieUpdate {
     pub nodes_removed: Vec<u64>,
     /// New root commitment of the trie.
     pub root_commitment: Felt,
-}
-
-#[derive(Default, Debug)]
-pub struct InMememoryStorage {
-    nodes: HashMap<u64, (Felt, StoredNode)>,
-    pub leaves: HashMap<Felt, Felt>,
-    pub next_index: u64,
-}
-
-impl Storage for InMememoryStorage {
-    fn get(&self, index: u64) -> anyhow::Result<Option<StoredNode>> {
-        Ok(self.nodes.get(&index).map(|x| x.1.clone()))
-    }
-
-    fn hash(&self, index: u64) -> anyhow::Result<Option<Felt>> {
-        Ok(self.nodes.get(&index).map(|x| x.0))
-    }
-
-    fn leaf(&self, path: &BitSlice<u8, Msb0>) -> anyhow::Result<Option<Felt>> {
-        let key = from_bits_to_felt(path)?;
-        Ok(self.leaves.get(&key).cloned())
-    }
-
-    fn insert_leaves(&mut self, key: Felt, value: Felt) {
-        self.leaves.insert(key, value);
-    }
-
-    fn insert_nodes(&mut self, key: u64, value: (Felt, StoredNode)) {
-        self.nodes.insert(key, value);
-    }
-
-    fn get_next_index(&self) -> u64 {
-        self.next_index
-    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -98,26 +66,6 @@ pub enum NodeRef {
     // A reference to a node that has not yet been committed to storage.
     // The index within the `nodes_added` vector is used as a reference.
     Index(usize),
-}
-
-/// Read-only storage used by the [Merkle tree](crate::tree::MerkleTree).
-pub trait Storage {
-    /// Returns the node stored at the given index.
-    fn get(&self, index: u64) -> anyhow::Result<Option<StoredNode>>;
-    /// Returns the hash of the node at the given index.
-    fn hash(&self, index: u64) -> anyhow::Result<Option<Felt>>;
-    /// Returns the value of the leaf at the given path.
-    fn leaf(&self, path: &BitSlice<u8, Msb0>) -> anyhow::Result<Option<Felt>>;
-    /// Inserts a leaf into the storage.
-    fn insert_leaves(&mut self, key: Felt, value: Felt);
-
-    fn insert_nodes(&mut self, key: u64, value: (Felt, StoredNode));
-
-    fn get_next_index(&self) -> u64;
-
-    fn add_next_index(&mut self, index: u64) -> u64 {
-        self.get_next_index() + index
-    }
 }
 
 pub struct MerkleTree<H: StarkHash, S: Storage, const HEIGHT: usize> {

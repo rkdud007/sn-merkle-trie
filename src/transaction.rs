@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod tests {
+    use crate::storage::memory::InMememoryStorage;
     use crate::Membership;
-    use crate::{conversion::from_felt_to_bits, InMememoryStorage, MerkleTree};
+    use crate::{conversion::from_felt_to_bits, MerkleTree};
     use starknet_types_core::felt::Felt;
     use starknet_types_core::hash::Pedersen;
 
