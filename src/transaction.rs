@@ -25,6 +25,8 @@ mod tests {
         let key5 = from_felt_to_bits(&Felt::from_hex_unchecked("0x4")); // 0b01
         let key6 = from_felt_to_bits(&Felt::from_hex_unchecked("0x5")); // 0b01
 
+        println!("{:?}", key1);
+
         let value_1 = Felt::from_hex_unchecked("0x2");
         let value_2 = Felt::from_hex_unchecked("0x3");
         let value_3 = Felt::from_hex_unchecked("0x4");
@@ -50,9 +52,11 @@ mod tests {
         // ffc=ffc))))`
         // let expected_root_hash =
         //     felt!("0x1a0e579b6b444769e4626331230b5ae39bd880f47e703b73fa56bf77e52e461");
-        // let (root, root_idx) = tree.commit().unwrap();
+        let (root, root_idx) = tree.commit().unwrap();
+        println!("{:?}", root);
+        println!("{:?}", root_idx);
 
-        // // assert_eq!(expected_root_hash, root);
+        // assert_eq!(expected_root_hash, root);
         // // let key = Felt::from_u64(1);
         // // let value = Felt::from_u64(2);
         // let proof = tree.get_proof(root_idx, key1.clone()).unwrap().unwrap();

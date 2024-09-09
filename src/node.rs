@@ -1,6 +1,9 @@
 use std::{cell::RefCell, rc::Rc};
 
 use bitvec::{order::Msb0, slice::BitSlice, vec::BitVec};
+use starknet_types_core::{felt::Felt, hash::StarkHash};
+
+use crate::conversion::from_bits_to_felt;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum InternalNode {
@@ -48,6 +51,16 @@ impl EdgeNode {
 
         &self.path[..common_length]
     }
+
+    pub(crate) fn calculate_hash<H: StarkHash>(child: Felt, path: &BitSlice<u8, Msb0>) -> Felt {
+        let mut length = [0; 32];
+        // Safe as len() is guaranteed to be <= 251
+        length[31] = path.len() as u8;
+        let length = Felt::from_bytes_be(&length);
+        let path = from_bits_to_felt(path).unwrap();
+
+        H::hash(&child, &path) + length
+    }
 }
 
 /// Describes the [InternalNode::Binary] variant.
@@ -83,6 +96,10 @@ impl BinaryNode {
             Direction::Right => self.right.clone(),
         }
     }
+
+    pub(crate) fn calculate_hash<H: StarkHash>(left: Felt, right: Felt) -> Felt {
+        H::hash(&left, &right)
+    }
 }
 
 /// Describes the direction a child of a [BinaryNode] may have.
@@ -99,6 +116,15 @@ impl From<bool> for Direction {
         match tf {
             true => Direction::Right,
             false => Direction::Left,
+        }
+    }
+}
+
+impl From<Direction> for bool {
+    fn from(direction: Direction) -> Self {
+        match direction {
+            Direction::Left => false,
+            Direction::Right => true,
         }
     }
 }

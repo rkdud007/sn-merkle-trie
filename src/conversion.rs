@@ -13,13 +13,14 @@ pub fn from_bits_to_felt(bits: &BitSlice<u8, Msb0>) -> anyhow::Result<Felt> {
     Ok(Felt::from_bytes_be(&bytes))
 }
 
+/// Returns a bit view of the 251 least significant bits in MSB order.
 pub fn from_felt_to_bits(felt: &Felt) -> BitVec<u8, Msb0> {
     let bytes = felt.to_bytes_be();
     let mut bv = BitVec::<u8, Msb0>::from_slice(&bytes);
 
     // Remove leading zeros.
     // Felt is 252 bits, so we remove the first 4 bits (32 * 8 - 252 = 4)
-    bv.drain(..4);
+    bv.drain(..5);
 
     bv
 }
