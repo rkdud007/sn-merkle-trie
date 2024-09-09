@@ -43,6 +43,15 @@ pub enum Membership {
     NonMember,
 }
 
+impl Membership {
+    pub fn is_member(&self) -> bool {
+        match self {
+            Membership::Member => true,
+            Membership::NonMember => false,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum Node {
     Binary {
