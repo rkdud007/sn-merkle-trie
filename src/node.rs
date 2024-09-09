@@ -5,6 +5,15 @@ use starknet_types_core::{felt::Felt, hash::StarkHash};
 
 use crate::conversion::from_bits_to_felt;
 
+/// A node in a Starknet patricia-merkle trie.
+///
+/// See pathfinders merkle-tree crate for more information.
+#[derive(Debug, Clone, PartialEq)]
+pub enum TrieNode {
+    Binary { left: Felt, right: Felt },
+    Edge { child: Felt, path: BitVec<u8, Msb0> },
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum InternalNode {
     /// A node that has not been fetched from storage yet.

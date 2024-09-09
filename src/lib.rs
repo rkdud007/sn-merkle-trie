@@ -5,7 +5,7 @@ pub mod transaction;
 use anyhow::Context;
 use bitvec::{order::Msb0, slice::BitSlice, vec::BitVec};
 use conversion::from_bits_to_felt;
-use node::{BinaryNode, Direction, EdgeNode, InternalNode};
+use node::{BinaryNode, Direction, EdgeNode, InternalNode, TrieNode};
 use starknet_types_core::{felt::Felt, hash::StarkHash};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -24,7 +24,7 @@ pub struct TrieUpdate {
     pub root_commitment: Felt,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct InMememoryStorage {
     nodes: HashMap<u64, (Felt, StoredNode)>,
     pub leaves: HashMap<Felt, Felt>,
@@ -130,6 +130,105 @@ impl<H: StarkHash, S: Storage + Default, const HEIGHT: usize> Default for Merkle
 }
 
 impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
+    pub fn get_proof(
+        &self,
+        root_idx: u64,
+        key: BitVec<u8, Msb0>,
+    ) -> anyhow::Result<Option<Vec<TrieNode>>> {
+        // Manually traverse towards the key.
+        let mut nodes = Vec::new();
+
+        let mut next = Some(root_idx);
+        let mut height = 0;
+        while let Some(index) = next.take() {
+            let Some(node) = self.storage.get(index).context("Resolving node")? else {
+                println!("Node not found ");
+
+                return Ok(None);
+            };
+
+            let node = match node {
+                StoredNode::Binary { left, right } => {
+                    // Choose the direction to go in.
+                    next = match key.get(height).map(|b| Direction::from(*b)) {
+                        Some(Direction::Left) => Some(left),
+                        Some(Direction::Right) => Some(right),
+                        None => anyhow::bail!("Key path too short for binary node"),
+                    };
+                    height += 1;
+
+                    let left = self
+                        .storage
+                        .hash(left)
+                        .context("Querying left child's hash")?
+                        .context("Left child's hash is missing")?;
+
+                    let right = self
+                        .storage
+                        .hash(right)
+                        .context("Querying right child's hash")?
+                        .context("Right child's hash is missing")?;
+
+                    TrieNode::Binary { left, right }
+                }
+                StoredNode::Edge { child, path } => {
+                    let key = key
+                        .get(height..height + path.len())
+                        .context("Key path is too short for edge node")?;
+                    height += path.len();
+
+                    // If the path matches then we continue otherwise the proof is complete.
+                    if key == path {
+                        next = Some(child);
+                    }
+
+                    let child = self
+                        .storage
+                        .hash(child)
+                        .context("Querying child child's hash")?
+                        .context("Child's hash is missing")?;
+
+                    TrieNode::Edge { child, path }
+                }
+                StoredNode::LeafBinary => {
+                    // End of the line, get child hashes.
+                    let mut path = key[..height].to_bitvec();
+                    path.push(Direction::Left.into());
+                    let left = self
+                        .storage
+                        .leaf(&path)
+                        .context("Querying left leaf hash")?
+                        .context("Left leaf is missing")?;
+                    path.pop();
+                    path.push(Direction::Right.into());
+                    let right = self
+                        .storage
+                        .leaf(&path)
+                        .context("Querying right leaf hash")?
+                        .context("Right leaf is missing")?;
+
+                    TrieNode::Binary { left, right }
+                }
+                StoredNode::LeafEdge { path } => {
+                    let mut current_path = key[..height].to_bitvec();
+                    // End of the line, get hash of the child.
+                    current_path.extend_from_bitslice(&path);
+                    let child = self
+                        .storage
+                        .leaf(&current_path)
+                        .context("Querying leaf hash")?
+                        .context("Child leaf is missing")?;
+
+                    TrieNode::Edge { child, path }
+                }
+            };
+
+            nodes.push(node);
+        }
+
+        Ok(Some(nodes))
+    }
+
     pub fn commit(&mut self) -> anyhow::Result<(Felt, u64)> {
         for (key, value) in &self.leaves {
             let key = from_bits_to_felt(key).unwrap();
