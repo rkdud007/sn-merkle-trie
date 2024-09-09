@@ -19,7 +19,7 @@ pub fn from_felt_to_bits(felt: &Felt) -> BitVec<u8, Msb0> {
     let mut bv = BitVec::<u8, Msb0>::from_slice(&bytes);
 
     // Remove leading zeros.
-    // Felt is 252 bits, so we remove the first 4 bits (32 * 8 - 252 = 4)
+    // 32 * 8 - 251 = 4
     bv.drain(..5);
 
     bv

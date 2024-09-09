@@ -69,7 +69,7 @@ pub enum StoredNode {
     LeafEdge { path: BitVec<u8, Msb0> },
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Membership {
     Member,
     NonMember,
@@ -381,7 +381,7 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
         }
 
         let storage_root_index = self.storage.get_next_index() + number_of_nodes_added - 1;
-        let final_index = self.storage.add_next_index(number_of_nodes_added);
+        let _ = self.storage.add_next_index(number_of_nodes_added);
 
         Ok((update.root_commitment, storage_root_index))
     }
@@ -498,7 +498,7 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
 
         // Changing or inserting a new leaf into the tree will change the hashes
         // of all nodes along the path to the leaf.
-        let path = self.traverse(&self.storage, &key)?;
+        let path = self.traverse(&key)?;
 
         // There are three possibilities.
         //
@@ -597,7 +597,7 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
                     }
                 };
 
-                let old_node = node.replace(updated);
+                let _ = node.replace(updated);
                 // if let Some(index) = old_node.storage_index() {
                 //     self.nodes_removed.push(index);
                 // };
@@ -636,16 +636,11 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
     /// since it would always be possible to continue on towards the
     /// destination. Nor can it be an [Unresolved](InternalNode::Unresolved)
     /// node since this would be resolved to check if we can travel further.
-    fn traverse(
-        &self,
-        storage: &impl Storage,
-        dst: &BitSlice<u8, Msb0>,
-    ) -> anyhow::Result<Vec<Rc<RefCell<InternalNode>>>> {
+    fn traverse(&self, dst: &BitSlice<u8, Msb0>) -> anyhow::Result<Vec<Rc<RefCell<InternalNode>>>> {
         let Some(mut current) = self.root.clone() else {
             return Ok(Vec::new());
         };
 
-        let mut height = 0;
         let mut nodes = Vec::new();
         loop {
             use InternalNode::*;
@@ -653,7 +648,7 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
             let current_tmp = current.borrow().clone();
 
             let next = match current_tmp {
-                Unresolved(idx) => {
+                Unresolved(_) => {
                     // let node = self.resolve(storage, idx, height)?;
                     // current.replace(node);
                     // current
@@ -662,13 +657,10 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
                 Binary(binary) => {
                     nodes.push(current.clone());
                     let next = binary.direction(dst);
-                    let next = binary.get_child(next);
-                    height += 1;
-                    next
+                    binary.get_child(next)
                 }
                 Edge(edge) if edge.path_matches(dst) => {
                     nodes.push(current.clone());
-                    height += edge.path.len();
                     edge.child.clone()
                 }
                 Leaf | Edge(_) => {

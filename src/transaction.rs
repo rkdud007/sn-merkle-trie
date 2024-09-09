@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::Membership;
     use crate::{conversion::from_felt_to_bits, InMememoryStorage, MerkleTree};
     use starknet_types_core::felt::Felt;
     use starknet_types_core::hash::Pedersen;
@@ -15,8 +16,6 @@ mod tests {
         let key5 = from_felt_to_bits(&Felt::from_hex_unchecked("0x4")); // 0b01
         let key6 = from_felt_to_bits(&Felt::from_hex_unchecked("0x5")); // 0b01
 
-        println!("{:?}", key1);
-
         let value_1 = Felt::from_hex_unchecked("0x2");
         let value_2 = Felt::from_hex_unchecked("0x3");
         let value_3 = Felt::from_hex_unchecked("0x4");
@@ -30,27 +29,19 @@ mod tests {
         tree.set(key4.clone(), value_4).unwrap();
         tree.set(key5.clone(), value_5).unwrap();
         tree.set(key6.clone(), value_6).unwrap();
-        println!("{:?}", tree.leaves);
 
         let (root, root_idx) = tree.commit().unwrap();
-        println!("{:?}", root);
-        println!("{:?}", root_idx);
-        println!("storage {:?}", tree.storage);
 
-        // assert_eq!(expected_root_hash, root);
-        // // let key = Felt::from_u64(1);
-        // // let value = Felt::from_u64(2);
         let proof = tree.get_proof(root_idx, key1.clone()).unwrap().unwrap();
-        println!("{:?}", proof);
+
         let mem = tree.verify_proof(root, &key1, value_1, &proof);
-        println!("{:?}", mem);
+        assert_eq!(mem, Some(Membership::Member));
 
         let mem = tree.verify_proof(root, &key1, value_2, &proof);
-        println!("{:?}", mem);
+        assert_eq!(mem, None);
 
         let key7 = from_felt_to_bits(&Felt::from_hex_unchecked("0xabc"));
-
         let mem = tree.verify_proof(root, &key7, value_2, &proof);
-        println!("{:?}", mem);
+        assert_eq!(mem, Some(Membership::NonMember));
     }
 }
