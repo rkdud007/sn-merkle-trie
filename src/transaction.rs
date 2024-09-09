@@ -40,20 +40,17 @@ mod tests {
         // assert_eq!(expected_root_hash, root);
         // // let key = Felt::from_u64(1);
         // // let value = Felt::from_u64(2);
-        let proof = tree.get_proof(root_idx, key1.clone()).unwrap().unwrap();
+        let proof = tree.get_proof(6, key1.clone()).unwrap().unwrap();
         println!("{:?}", proof);
-        // let mem =
-        //     TransactionOrEventTree::<PedersenHash>::verify_proof(root, &key1, value_1, &proof);
-        // println!("{:?}", mem);
+        let mem = tree.verify_proof(root, &key1, value_1, &proof);
+        println!("{:?}", mem);
 
-        // let mem =
-        //     TransactionOrEventTree::<PedersenHash>::verify_proof(root, &key1, value_2, &proof);
-        // println!("{:?}", mem);
+        let mem = tree.verify_proof(root, &key1, value_2, &proof);
+        println!("{:?}", mem);
 
-        // let key7 = felt!("0xabc").view_bits().to_owned(); // 0b01
+        let key7 = from_felt_to_bits(&Felt::from_hex_unchecked("0xabc"));
 
-        // let mem =
-        //     TransactionOrEventTree::<PedersenHash>::verify_proof(root, &key7, value_2, &proof);
-        // println!("{:?}", mem);
+        let mem = tree.verify_proof(root, &key7, value_2, &proof);
+        println!("{:?}", mem);
     }
 }

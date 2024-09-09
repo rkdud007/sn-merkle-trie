@@ -14,6 +14,23 @@ pub enum TrieNode {
     Edge { child: Felt, path: BitVec<u8, Msb0> },
 }
 
+impl TrieNode {
+    pub fn hash<H: StarkHash>(&self) -> Felt {
+        match self {
+            TrieNode::Binary { left, right } => H::hash(left, right),
+            TrieNode::Edge { child, path } => {
+                let mut length = [0; 32];
+                // Safe as len() is guaranteed to be <= 251
+                length[31] = path.len() as u8;
+                let path = from_bits_to_felt(path).unwrap();
+
+                let length = Felt::from_bytes_be(&length);
+                H::hash(child, &path) + length
+            }
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum InternalNode {
     /// A node that has not been fetched from storage yet.

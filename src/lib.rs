@@ -6,7 +6,10 @@ use anyhow::Context;
 use bitvec::{order::Msb0, slice::BitSlice, vec::BitVec};
 use conversion::from_bits_to_felt;
 use node::{BinaryNode, Direction, EdgeNode, InternalNode, TrieNode};
-use starknet_types_core::{felt::Felt, hash::StarkHash};
+use starknet_types_core::{
+    felt::Felt,
+    hash::{Pedersen, StarkHash},
+};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 /// The result of committing a Merkle tree.
@@ -64,6 +67,12 @@ pub enum StoredNode {
     Edge { child: u64, path: BitVec<u8, Msb0> },
     LeafBinary,
     LeafEdge { path: BitVec<u8, Msb0> },
+}
+
+#[derive(Debug)]
+pub enum Membership {
+    Member,
+    NonMember,
 }
 
 #[derive(Clone, Debug)]
@@ -227,6 +236,71 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
         }
 
         Ok(Some(nodes))
+    }
+
+    pub fn verify_proof(
+        &self,
+        root: Felt,
+        key: &BitSlice<u8, Msb0>,
+        value: Felt,
+        proofs: &[TrieNode],
+    ) -> Option<Membership> {
+        // Protect from ill-formed keys
+        if key.len() != 251 {
+            return None;
+        }
+
+        let mut expected_hash = root;
+        let mut remaining_path: &BitSlice<u8, Msb0> = key;
+
+        for proof_node in proofs.iter() {
+            // Hash mismatch? Return None.
+            if proof_node.hash::<Pedersen>() != expected_hash {
+                return None;
+            }
+            match proof_node {
+                TrieNode::Binary { left, right } => {
+                    // Direction will always correspond to the 0th index
+                    // because we're removing bits on every iteration.
+                    let direction = Direction::from(remaining_path[0]);
+
+                    // Set the next hash to be the left or right hash,
+                    // depending on the direction
+                    expected_hash = match direction {
+                        Direction::Left => *left,
+                        Direction::Right => *right,
+                    };
+
+                    // Advance by a single bit
+                    remaining_path = &remaining_path[1..];
+                }
+                TrieNode::Edge { child, path } => {
+                    if path != &remaining_path[..path.len()] {
+                        // If paths don't match, we've found a proof of non membership because
+                        // we:
+                        // 1. Correctly moved towards the target insofar as is possible, and
+                        // 2. hashing all the nodes along the path does result in the root hash,
+                        //    which means
+                        // 3. the target definitely does not exist in this tree
+                        return Some(Membership::NonMember);
+                    }
+
+                    // Set the next hash to the child's hash
+                    expected_hash = *child;
+
+                    // Advance by the whole edge path
+                    remaining_path = &remaining_path[path.len()..];
+                }
+            }
+        }
+
+        // At this point, we should reach `value` !
+        if expected_hash == value {
+            Some(Membership::Member)
+        } else {
+            // Hash mismatch. Return `None`.
+            None
+        }
     }
 
     pub fn commit(&mut self) -> anyhow::Result<(Felt, u64)> {
