@@ -6,9 +6,11 @@ use starknet_types_core::{
 
 use crate::{node::TrieNode, storage::memory::InMememoryStorage, Membership, MerkleTree};
 
+const TRANSACTION_MERKLE_TREE_HEIGHT: usize = 64;
+
 pub enum TransactionMerkleTree {
-    Pedersen(MerkleTree<Pedersen, InMememoryStorage, 64>),
-    Poseidon(MerkleTree<Poseidon, InMememoryStorage, 64>),
+    Pedersen(MerkleTree<Pedersen, InMememoryStorage, TRANSACTION_MERKLE_TREE_HEIGHT>),
+    Poseidon(MerkleTree<Poseidon, InMememoryStorage, TRANSACTION_MERKLE_TREE_HEIGHT>),
 }
 
 impl TransactionMerkleTree {
@@ -53,16 +55,15 @@ impl TransactionMerkleTree {
 
 #[cfg(test)]
 mod tests {
-    use crate::storage::memory::InMememoryStorage;
+    use super::*;
     use crate::Membership;
     use crate::{conversion::from_felt_to_bits, MerkleTree};
     use bitvec::view::BitView;
     use starknet_types_core::felt::Felt;
-    use starknet_types_core::hash::Pedersen;
 
     #[test]
     fn test_tx_commitment_merkle_tree() {
-        let mut tree: MerkleTree<Pedersen, InMememoryStorage, 64> = Default::default();
+        let mut tree = TransactionMerkleTree::Pedersen(MerkleTree::default());
 
         // Note: depends on bits length commit will be differ
         let key1 = 0_u64.to_be_bytes().view_bits().to_owned();

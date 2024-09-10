@@ -15,8 +15,8 @@ Heavily rely on [pathfinder's merkle tree implementation](https://github.com/eql
 ```rust
 
 fn main() {
-    // transaction tree height is 64 fix
-    let mut tree: MerkleTree<Pedersen, InMememoryStorage, 64> = Default::default();
+    // transaction tree either pedersen or poseidon
+    let mut tree = TransactionMerkleTree::Pedersen(MerkleTree::default());
     let key1 = from_felt_to_bits(&Felt::from_hex_unchecked("0x0")); // 0b01
     let value_1 = Felt::from_hex_unchecked("0x2");
     // insert key and value
