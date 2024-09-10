@@ -7,10 +7,7 @@ use anyhow::Context;
 use bitvec::{order::Msb0, slice::BitSlice, vec::BitVec};
 use conversion::from_bits_to_felt;
 use node::{BinaryNode, Direction, EdgeNode, InternalNode, TrieNode};
-use starknet_types_core::{
-    felt::Felt,
-    hash::{Pedersen, StarkHash},
-};
+use starknet_types_core::{felt::Felt, hash::StarkHash};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use storage::Storage;
 
@@ -206,7 +203,7 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
 
         for proof_node in proofs.iter() {
             // Hash mismatch? Return None.
-            if proof_node.hash::<Pedersen>() != expected_hash {
+            if proof_node.hash::<H>() != expected_hash {
                 return None;
             }
             match proof_node {
@@ -648,6 +645,7 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
 #[cfg(test)]
 mod tests {
     use conversion::from_felt_to_bits;
+    use starknet_types_core::hash::Pedersen;
     use storage::memory::InMememoryStorage;
 
     use super::*;
