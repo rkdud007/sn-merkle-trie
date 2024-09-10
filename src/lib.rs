@@ -109,7 +109,6 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
         while let Some(index) = next.take() {
             let Some(node) = self.storage.get(index).context("Resolving node")? else {
                 println!("Node not found ");
-
                 return Ok(None);
             };
 
@@ -257,7 +256,6 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
 
     pub fn commit(&mut self) -> anyhow::Result<(Felt, u64)> {
         for (key, value) in &self.leaves {
-            println!("key :{:?}, value:{:?}", key, value);
             let key = from_bits_to_felt(key).unwrap();
             self.storage.insert_leaves(key, *value);
         }
