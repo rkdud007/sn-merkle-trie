@@ -45,6 +45,15 @@ pub enum InternalNode {
     Leaf,
 }
 
+impl InternalNode {
+    pub fn as_edge(&self) -> Option<&EdgeNode> {
+        match self {
+            InternalNode::Edge(edge) => Some(edge),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct EdgeNode {
     /// The storage index of this node (if it was loaded from storage).

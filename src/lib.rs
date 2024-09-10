@@ -202,11 +202,6 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
         value: Felt,
         proofs: &[TrieNode],
     ) -> Option<Membership> {
-        // Protect from ill-formed keys
-        if key.len() != 251 {
-            return None;
-        }
-
         let mut expected_hash = root;
         let mut remaining_path: &BitSlice<u8, Msb0> = key;
 
@@ -262,6 +257,7 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
 
     pub fn commit(&mut self) -> anyhow::Result<(Felt, u64)> {
         for (key, value) in &self.leaves {
+            println!("key :{:?}, value:{:?}", key, value);
             let key = from_bits_to_felt(key).unwrap();
             self.storage.insert_leaves(key, *value);
         }
@@ -448,6 +444,26 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
         Ok(result)
     }
 
+    /// Returns the value stored at key, or `None` if it does not exist.
+    pub fn get(&self, key: BitVec<u8, Msb0>) -> anyhow::Result<Option<Felt>> {
+        let node = self.traverse(&key)?;
+        let node = node.last();
+
+        let Some(node) = node else {
+            return Ok(None);
+        };
+
+        if *node.borrow() == InternalNode::Leaf {
+            if let Some(value) = self.leaves.get(&key) {
+                Ok(Some(*value))
+            } else {
+                self.storage.leaf(&key)
+            }
+        } else {
+            Ok(None)
+        }
+    }
+
     pub fn set(&mut self, key: BitVec<u8, Msb0>, value: Felt) -> anyhow::Result<()> {
         // if value == Felt::ZERO {
         //     return self.delete_leaf(storage, &key);
@@ -628,5 +644,141 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
 
             current = next;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use conversion::from_felt_to_bits;
+    use storage::memory::InMememoryStorage;
+
+    use super::*;
+
+    #[test]
+    fn test_in_memory_storage() {
+        let mut tree: MerkleTree<Pedersen, InMememoryStorage, 64> = Default::default();
+        let key0 = from_felt_to_bits(&Felt::from_hex_unchecked("0x99cadc82"));
+        let key1 = from_felt_to_bits(&Felt::from_hex_unchecked("0x901823"));
+        let key2 = from_felt_to_bits(&Felt::from_hex_unchecked("0x8975"));
+
+        let val0 = Felt::from_hex_unchecked("0x891127cbaf");
+        let val1 = Felt::from_hex_unchecked("0x82233127cbaf");
+        let val2 = Felt::from_hex_unchecked("0x891124667aacde7cbaf");
+
+        tree.set(key0.clone(), val0).unwrap();
+        tree.set(key1.clone(), val1).unwrap();
+        tree.set(key2.clone(), val2).unwrap();
+
+        assert_eq!(tree.get(key0).unwrap(), Some(val0));
+        assert_eq!(tree.get(key1).unwrap(), Some(val1));
+        assert_eq!(tree.get(key2).unwrap(), Some(val2));
+    }
+
+    #[test]
+    fn single_leaf() {
+        let mut tree: MerkleTree<Pedersen, InMememoryStorage, 64> = Default::default();
+
+        let key = from_felt_to_bits(&Felt::from_hex_unchecked("0x123"));
+        let value = Felt::from_hex_unchecked("0xabc");
+
+        tree.set(key.clone(), value).unwrap();
+
+        // The tree should consist of an edge node (root) leading to a leaf node.
+        // The edge node path should match the key, and the leaf node the value.
+        let expected_path = key.clone();
+
+        let edge = tree
+            .root
+            .unwrap()
+            .borrow()
+            .as_edge()
+            .cloned()
+            .expect("root should be an edge");
+        assert_eq!(edge.path, expected_path);
+        assert_eq!(edge.height, 0);
+
+        let leaf = edge.child.borrow().to_owned();
+        assert_eq!(leaf, InternalNode::Leaf);
+    }
+
+    #[test]
+    fn committing_an_unmodified_tree_should_result_in_empty_update() {
+        let mut tree: MerkleTree<Pedersen, InMememoryStorage, 64> = Default::default();
+
+        tree.set(
+            from_felt_to_bits(&Felt::from_hex_unchecked("0x1")),
+            Felt::from_hex_unchecked("0x1"),
+        )
+        .unwrap();
+        let root = tree.commit().unwrap();
+        assert_eq!(
+            root.0,
+            Felt::from_hex_unchecked(
+                "0x02ebbd6878f81e49560ae863bd4ef327a417037bf57b63a016130ad0a94c8fa7"
+            )
+        );
+        assert_eq!(tree.storage.nodes.len(), 1);
+    }
+
+    #[test]
+    fn contract_edge_branches_correctly_on_insert() {
+        // This emulates the contract update which exposed a bug in `set`.
+        //
+        // This was discovered by comparing the global state tree for the
+        // gensis block on goerli testnet (alpha 4.0).
+        //
+        // The bug was identified by comparing root and nodes against the python
+        // utility in `root/py/src/test_generate_test_storage_tree.py`.
+        let leaves = [
+            (
+                Felt::from_hex_unchecked("0x5"),
+                Felt::from_hex_unchecked("0x66"),
+            ),
+            (
+                Felt::from_hex_unchecked(
+                    "0x1BF95D4B58F0741FEA29F94EE5A118D0847C8B7AE0173C2A570C9F74CCA9EA1",
+                ),
+                Felt::from_hex_unchecked("0x7E5"),
+            ),
+            (
+                Felt::from_hex_unchecked(
+                    "0x3C75C20765D020B0EC41B48BB8C5338AC4B619FC950D59994E844E1E1B9D2A9",
+                ),
+                Felt::from_hex_unchecked("0x7C7"),
+            ),
+            (
+                Felt::from_hex_unchecked(
+                    "0x4065B936C56F5908A981084DAFA66DC17600937DC80C52EEB834693BB811792",
+                ),
+                Felt::from_hex_unchecked(
+                    "0x7970C532B764BB36FAF5696B8BC1317505B8A4DC9EEE5DF4994671757975E4D",
+                ),
+            ),
+            (
+                Felt::from_hex_unchecked(
+                    "0x4B5FBB4904167E2E8195C35F7D4E78501A3FE95896794367C85B60B39AEFFC2",
+                ),
+                Felt::from_hex_unchecked(
+                    "0x232C969EAFC5B30C20648759D7FA1E2F4256AC6604E1921578101DCE4DFDF48",
+                ),
+            ),
+        ];
+
+        // create test database
+
+        let mut tree: MerkleTree<Pedersen, InMememoryStorage, 64> = Default::default();
+
+        for (key, val) in leaves {
+            let key = from_felt_to_bits(&key);
+            tree.set(key, val).unwrap();
+        }
+
+        let root = tree.commit().unwrap().0;
+
+        let expected = Felt::from_hex_unchecked(
+            "0x6ee9a8202b40f3f76f1a132f953faa2df78b3b33ccb2b4406431abdc99c2dfe",
+        );
+
+        assert_eq!(root, expected);
     }
 }

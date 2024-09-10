@@ -9,7 +9,7 @@ use super::Storage;
 
 #[derive(Default, Debug)]
 pub struct InMememoryStorage {
-    nodes: HashMap<u64, (Felt, StoredNode)>,
+    pub nodes: HashMap<u64, (Felt, StoredNode)>,
     pub leaves: HashMap<Felt, Felt>,
     pub next_index: u64,
 }
