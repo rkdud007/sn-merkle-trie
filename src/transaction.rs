@@ -1,3 +1,56 @@
+use bitvec::{order::Msb0, vec::BitVec};
+use starknet_types_core::{
+    felt::Felt,
+    hash::{Pedersen, Poseidon},
+};
+
+use crate::{node::TrieNode, storage::memory::InMememoryStorage, Membership, MerkleTree};
+
+pub enum TransactionMerkleTree {
+    Pedersen(MerkleTree<Pedersen, InMememoryStorage, 64>),
+    Poseidon(MerkleTree<Poseidon, InMememoryStorage, 64>),
+}
+
+impl TransactionMerkleTree {
+    pub fn set(&mut self, key: BitVec<u8, Msb0>, value: Felt) -> anyhow::Result<()> {
+        match self {
+            TransactionMerkleTree::Pedersen(tree) => tree.set(key, value),
+            TransactionMerkleTree::Poseidon(tree) => tree.set(key, value),
+        }
+    }
+
+    pub fn commit(&mut self) -> anyhow::Result<(Felt, u64)> {
+        match self {
+            TransactionMerkleTree::Pedersen(tree) => tree.commit(),
+            TransactionMerkleTree::Poseidon(tree) => tree.commit(),
+        }
+    }
+
+    pub fn get_proof(
+        &self,
+        root_idx: u64,
+        key: BitVec<u8, Msb0>,
+    ) -> anyhow::Result<Option<Vec<TrieNode>>> {
+        match self {
+            TransactionMerkleTree::Pedersen(tree) => tree.get_proof(root_idx, key),
+            TransactionMerkleTree::Poseidon(tree) => tree.get_proof(root_idx, key),
+        }
+    }
+
+    pub fn verify_proof(
+        &self,
+        root: Felt,
+        key: &BitVec<u8, Msb0>,
+        value: Felt,
+        proof: &[TrieNode],
+    ) -> Option<Membership> {
+        match self {
+            TransactionMerkleTree::Pedersen(tree) => tree.verify_proof(root, key, value, proof),
+            TransactionMerkleTree::Poseidon(tree) => tree.verify_proof(root, key, value, proof),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::storage::memory::InMememoryStorage;
