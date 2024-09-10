@@ -24,3 +24,8 @@ pub fn from_felt_to_bits(felt: &Felt) -> BitVec<u8, Msb0> {
 
     bv
 }
+
+/// From [`u64`] to [`BitVec`] conversion
+pub fn from_u64_to_bits(value: u64) -> BitVec<u8, Msb0> {
+    value.to_be_bytes().view_bits().to_owned()
+}
