@@ -5,7 +5,7 @@ description = "Minimal starknet merkle patricia trie implementation"
 edition = "2021"
 license-file = "LICENSE"
 keywords = ["mpt", "trie", "starknet", "merkle-patricia-trie"]
-categories = ["cryptography", "data-structures", "blockchain"]
+categories = ["cryptography", "data-structures", "algorithms"]
 
 [dependencies]
 starknet-types-core = { version = "0.1.0", default-features = false, features = [
