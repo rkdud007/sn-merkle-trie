@@ -1,12 +1,12 @@
 # SN Merkle Patricia Trie
 
+[![Crates.io](https://img.shields.io/crates/v/sn-trie?style=flat-square&logo=lootcrate)](https://crates.io/crates/sn-trie)
+[![Documentation](https://img.shields.io/docsrs/sn-trie)](https://docs.rs/sn-trie)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Minimal implelementation of a [StarkNet MPT](https://docs.starknet.io/architecture-and-concepts/network-architecture/starknet-state/#merkle_patricia_trie).
 
-Heavily rely on [pathfinder's merkle tree implementation](https://github.com/eqlabs/pathfinder/tree/9e0ceec2c56a88ed58b6e49ee7ca6bccd703af33/crates/merkle-tree), but target to make it easy port as external dependency.
-
-- [x] transaction trie generation / commit / get proof / verify
-- [ ] receipt trie generation / commit / get proof / verify
-- [ ] sync with type from [type-rs](https://github.com/starknet-io/types-rs)
+Heavily rely on [pathfinder's merkle tree implementation](https://github.com/eqlabs/pathfinder/tree/9e0ceec2c56a88ed58b6e49ee7ca6bccd703af33/crates/merkle-tree), but target to make it easy port as external dependency + sync primitives with [type-rs](https://github.com/starknet-io/types-rs).
 
 ### Usage
 
