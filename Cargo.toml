@@ -2,6 +2,9 @@
 name = "sn-trie"
 version = "0.1.0"
 edition = "2021"
+license-file = "LICENSE"
+keywords = ["mpt", "trie", "starknet", "merkle-patricia-trie"]
+categories = ["cryptography", "data-structures", "blockchain"]
 
 [dependencies]
 starknet-types-core = { version = "0.1.0", default-features = false, features = [
