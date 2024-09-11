@@ -212,7 +212,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sn-trie"
+name = "sn-merkle-trie"
 version = "0.1.0"
 dependencies = [
  "anyhow",

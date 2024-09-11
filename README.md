@@ -1,7 +1,7 @@
-# SN Merkle Patricia Trie
+# sn-merkle-trie
 
-[![Crates.io](https://img.shields.io/crates/v/sn-trie?style=flat-square&logo=lootcrate)](https://crates.io/crates/sn-trie)
-[![Documentation](https://img.shields.io/docsrs/sn-trie)](https://docs.rs/sn-trie)
+[![Crates.io](https://img.shields.io/crates/v/sn-merkle-trie?style=flat-square&logo=lootcrate)](https://crates.io/crates/sn-merkle-trie)
+[![Documentation](https://img.shields.io/docsrs/sn-merkle-trie)](https://docs.rs/sn-merkle-trie)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Minimal implelementation of a [StarkNet MPT](https://docs.starknet.io/architecture-and-concepts/network-architecture/starknet-state/#merkle_patricia_trie).
