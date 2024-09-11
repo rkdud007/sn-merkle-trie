@@ -1,6 +1,7 @@
 [package]
 name = "sn-trie"
 version = "0.1.0"
+description = "Minimal starknet merkle patricia trie implementation"
 edition = "2021"
 license-file = "LICENSE"
 keywords = ["mpt", "trie", "starknet", "merkle-patricia-trie"]
