@@ -646,13 +646,13 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
 mod tests {
     use conversion::from_felt_to_bits;
     use starknet_types_core::hash::Pedersen;
-    use storage::memory::InMememoryStorage;
+    use storage::memory::InMemoryStorage;
 
     use super::*;
 
     #[test]
     fn test_in_memory_storage() {
-        let mut tree: MerkleTree<Pedersen, InMememoryStorage, 64> = Default::default();
+        let mut tree: MerkleTree<Pedersen, InMemoryStorage, 64> = Default::default();
         let key0 = from_felt_to_bits(&Felt::from_hex_unchecked("0x99cadc82"));
         let key1 = from_felt_to_bits(&Felt::from_hex_unchecked("0x901823"));
         let key2 = from_felt_to_bits(&Felt::from_hex_unchecked("0x8975"));
@@ -672,7 +672,7 @@ mod tests {
 
     #[test]
     fn single_leaf() {
-        let mut tree: MerkleTree<Pedersen, InMememoryStorage, 64> = Default::default();
+        let mut tree: MerkleTree<Pedersen, InMemoryStorage, 64> = Default::default();
 
         let key = from_felt_to_bits(&Felt::from_hex_unchecked("0x123"));
         let value = Felt::from_hex_unchecked("0xabc");
@@ -699,7 +699,7 @@ mod tests {
 
     #[test]
     fn committing_an_unmodified_tree_should_result_in_empty_update() {
-        let mut tree: MerkleTree<Pedersen, InMememoryStorage, 64> = Default::default();
+        let mut tree: MerkleTree<Pedersen, InMemoryStorage, 64> = Default::default();
 
         tree.set(
             from_felt_to_bits(&Felt::from_hex_unchecked("0x1")),
@@ -762,7 +762,7 @@ mod tests {
 
         // create test database
 
-        let mut tree: MerkleTree<Pedersen, InMememoryStorage, 64> = Default::default();
+        let mut tree: MerkleTree<Pedersen, InMemoryStorage, 64> = Default::default();
 
         for (key, val) in leaves {
             let key = from_felt_to_bits(&key);
