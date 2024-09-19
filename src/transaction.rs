@@ -4,13 +4,17 @@ use starknet_types_core::{
     hash::{Pedersen, Poseidon},
 };
 
-use crate::{node::TrieNode, storage::memory::InMememoryStorage, Membership, MerkleTree};
+use crate::{node::TrieNode, storage::memory::InMemoryStorage, Membership, MerkleTree};
 
 const TRANSACTION_MERKLE_TREE_HEIGHT: usize = 64;
 
+/// Transaction Merkle Tree of the StarkNet state.
+/// This implementation follows the [StarkNet MPT](https://docs.starknet.io/architecture-and-concepts/network-architecture/starknet-state/#merkle_patricia_trie)
+/// specification, allowing for efficient storage and proof of inclusion/exclusion of transactions
+/// in the state.
 pub enum TransactionMerkleTree {
-    Pedersen(MerkleTree<Pedersen, InMememoryStorage, TRANSACTION_MERKLE_TREE_HEIGHT>),
-    Poseidon(MerkleTree<Poseidon, InMememoryStorage, TRANSACTION_MERKLE_TREE_HEIGHT>),
+    Pedersen(MerkleTree<Pedersen, InMemoryStorage, TRANSACTION_MERKLE_TREE_HEIGHT>),
+    Poseidon(MerkleTree<Poseidon, InMemoryStorage, TRANSACTION_MERKLE_TREE_HEIGHT>),
 }
 
 impl TransactionMerkleTree {
