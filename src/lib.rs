@@ -3,6 +3,7 @@ pub mod node;
 pub mod storage;
 pub mod transaction;
 
+use alloy_primitives::B256;
 use anyhow::Context;
 use bitvec::{order::Msb0, slice::BitSlice, vec::BitVec};
 use conversion::from_bits_to_felt;
@@ -74,25 +75,23 @@ pub enum NodeRef {
     Index(usize),
 }
 
-pub struct MerkleTree<H: StarkHash, S: Storage, const HEIGHT: usize> {
+pub struct MerkleTree<S: Storage, const HEIGHT: usize> {
     pub root: Option<Rc<RefCell<InternalNode>>>,
     pub leaves: HashMap<BitVec<u8, Msb0>, Felt>,
-    _hasher: std::marker::PhantomData<H>,
     pub storage: S,
 }
 
-impl<H: StarkHash, S: Storage + Default, const HEIGHT: usize> Default for MerkleTree<H, S, HEIGHT> {
+impl<S: Storage + Default, const HEIGHT: usize> Default for MerkleTree<S, HEIGHT> {
     fn default() -> Self {
         Self {
             root: None,
             leaves: Default::default(),
-            _hasher: std::marker::PhantomData,
             storage: Default::default(),
         }
     }
 }
 
-impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
+impl<S: Storage, const HEIGHT: usize> MerkleTree<S, HEIGHT> {
     pub fn get_proof(
         &self,
         root_idx: u64,
@@ -193,9 +192,9 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
 
     pub fn verify_proof(
         &self,
-        root: Felt,
+        root: B256,
         key: &BitSlice<u8, Msb0>,
-        value: Felt,
+        value: B256,
         proofs: &[TrieNode],
     ) -> Option<Membership> {
         let mut expected_hash = root;
@@ -203,7 +202,7 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
 
         for proof_node in proofs.iter() {
             // Hash mismatch? Return None.
-            if proof_node.hash::<H>() != expected_hash {
+            if proof_node.hash() != expected_hash {
                 return None;
             }
             match proof_node {
@@ -215,8 +214,8 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
                     // Set the next hash to be the left or right hash,
                     // depending on the direction
                     expected_hash = match direction {
-                        Direction::Left => *left,
-                        Direction::Right => *right,
+                        Direction::Left => B256::from_slice(&left.to_bytes_be()),
+                        Direction::Right => B256::from_slice(&right.to_bytes_be()),
                     };
 
                     // Advance by a single bit
@@ -234,7 +233,7 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
                     }
 
                     // Set the next hash to the child's hash
-                    expected_hash = *child;
+                    expected_hash = B256::from_slice(&child.to_bytes_be());
 
                     // Advance by the whole edge path
                     remaining_path = &remaining_path[path.len()..];
@@ -251,7 +250,7 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
         }
     }
 
-    pub fn commit(&mut self) -> anyhow::Result<(Felt, u64)> {
+    pub fn commit(&mut self) -> anyhow::Result<(B256, u64)> {
         for (key, value) in &self.leaves {
             let key = from_bits_to_felt(key).unwrap();
             self.storage.insert_leaves(key, *value);
@@ -341,7 +340,7 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
         removed: &mut Vec<u64>,
         storage: &impl Storage,
         mut path: BitVec<u8, Msb0>,
-    ) -> anyhow::Result<(Felt, Option<NodeRef>)> {
+    ) -> anyhow::Result<(B256, Option<NodeRef>)> {
         let result = match node {
             InternalNode::Unresolved(idx) => {
                 // Unresolved nodes are already committed, but we need their hash for subsequent
@@ -382,7 +381,7 @@ impl<H: StarkHash, S: Storage, const HEIGHT: usize> MerkleTree<H, S, HEIGHT> {
                     storage,
                     right_path,
                 )?;
-                let hash = BinaryNode::calculate_hash::<H>(left_hash, right_hash);
+                let hash = BinaryNode::calculate_hash(left_hash, right_hash);
 
                 let persisted_node = match (left_child, right_child) {
                     (None, None) => Node::LeafBinary,

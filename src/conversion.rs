@@ -1,10 +1,11 @@
+use alloy_primitives::{Keccak256, B256};
 use anyhow::bail;
 use bitvec::{order::Msb0, slice::BitSlice, vec::BitVec, view::BitView};
 use starknet_types_core::felt::Felt;
 
 /// From [`BitSlice`] to [`Felt`] conversion
 pub fn from_bits_to_felt(bits: &BitSlice<u8, Msb0>) -> anyhow::Result<Felt> {
-    if bits.len() > 251 {
+    if bits.len() > 256 {
         bail!("overflow");
     }
 
@@ -28,4 +29,15 @@ pub fn from_felt_to_bits(felt: &Felt) -> BitVec<u8, Msb0> {
 /// From [`u64`] to [`BitVec`] conversion
 pub fn from_u64_to_bits(value: u64) -> BitVec<u8, Msb0> {
     value.to_be_bytes().view_bits().to_owned()
+}
+
+pub fn felt_keccak(felt0: &Felt, felt1: &Felt) -> B256 {
+    let felt0_b256 = felt0.to_bytes_be();
+    let felt1_b256 = felt1.to_bytes_be();
+
+    let mut hasher = Keccak256::new();
+    hasher.update(&felt0_b256);
+    hasher.update(&felt1_b256);
+    let hash = hasher.finalize();
+    hash
 }

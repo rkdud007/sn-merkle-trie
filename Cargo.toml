@@ -12,5 +12,6 @@ starknet-types-core = { version = "0.1.0", default-features = false, features = 
     "serde",
     "hash",
 ] }
+alloy-primitives = { version = "0.8.6", features = ["serde"] }
 bitvec = "1.0.1"
 anyhow = "1.0.75"

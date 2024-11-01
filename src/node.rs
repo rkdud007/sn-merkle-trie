@@ -1,9 +1,10 @@
 use std::{cell::RefCell, rc::Rc};
 
+use alloy_primitives::B256;
 use bitvec::{order::Msb0, slice::BitSlice, vec::BitVec};
 use starknet_types_core::{felt::Felt, hash::StarkHash};
 
-use crate::conversion::from_bits_to_felt;
+use crate::conversion::{felt_keccak, from_bits_to_felt};
 
 /// A node in a Starknet patricia-merkle trie.
 ///
@@ -15,9 +16,9 @@ pub enum TrieNode {
 }
 
 impl TrieNode {
-    pub fn hash<H: StarkHash>(&self) -> Felt {
+    pub fn hash(&self) -> B256 {
         match self {
-            TrieNode::Binary { left, right } => H::hash(left, right),
+            TrieNode::Binary { left, right } => felt_keccak(left, right),
             TrieNode::Edge { child, path } => {
                 let mut length = [0; 32];
                 // Safe as len() is guaranteed to be <= 251
@@ -87,7 +88,7 @@ impl EdgeNode {
         &self.path[..common_length]
     }
 
-    pub(crate) fn calculate_hash<H: StarkHash>(child: Felt, path: &BitSlice<u8, Msb0>) -> Felt {
+    pub(crate) fn calculate_hash(child: B256, path: &BitSlice<u8, Msb0>) -> Felt {
         let mut length = [0; 32];
         // Safe as len() is guaranteed to be <= 251
         length[31] = path.len() as u8;
@@ -132,8 +133,8 @@ impl BinaryNode {
         }
     }
 
-    pub(crate) fn calculate_hash<H: StarkHash>(left: Felt, right: Felt) -> Felt {
-        H::hash(&left, &right)
+    pub(crate) fn calculate_hash(left: Felt, right: Felt) -> B256 {
+        felt_keccak(&left, &right)
     }
 }
 
